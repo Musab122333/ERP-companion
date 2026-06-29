@@ -11,14 +11,16 @@
 -- ────────────────────────────────────────────────────────────
 CREATE OR REPLACE VIEW warehouse.vw_sales_summary AS
 SELECT
-    source_folder,
-    invoice_date,
-    COUNT(DISTINCT invoice_no)   AS invoice_count,
-    SUM(line_amount)              AS total_sales,
-    SUM(quantity)                   AS total_qty
-FROM warehouse.fact_sales
-WHERE invoice_date IS NOT NULL
-GROUP BY source_folder, invoice_date;
+    f.source_folder,
+    f.invoice_date,
+    COUNT(DISTINCT f.invoice_no)   AS invoice_count,
+    SUM(f.line_amount)              AS total_sales,
+    SUM(f.quantity)                   AS total_qty
+FROM warehouse.fact_sales f
+JOIN warehouse.dim_customer c ON f.customer_key = c.customer_key
+WHERE f.invoice_date IS NOT NULL
+  AND c.is_internal_account = FALSE
+GROUP BY f.source_folder, f.invoice_date;
 
 
 -- ────────────────────────────────────────────────────────────
@@ -26,12 +28,14 @@ GROUP BY source_folder, invoice_date;
 -- ────────────────────────────────────────────────────────────
 CREATE OR REPLACE VIEW warehouse.vw_today_sales AS
 SELECT
-    source_folder,
-    COUNT(DISTINCT invoice_no) AS invoice_count,
-    SUM(line_amount)            AS total_sales
-FROM warehouse.fact_sales
-WHERE invoice_date = CURRENT_DATE
-GROUP BY source_folder;
+    f.source_folder,
+    COUNT(DISTINCT f.invoice_no) AS invoice_count,
+    SUM(f.line_amount)            AS total_sales
+FROM warehouse.fact_sales f
+JOIN warehouse.dim_customer c ON f.customer_key = c.customer_key
+WHERE f.invoice_date = CURRENT_DATE
+  AND c.is_internal_account = FALSE
+GROUP BY f.source_folder;
 
 
 -- ────────────────────────────────────────────────────────────
@@ -63,6 +67,7 @@ SELECT
     MAX(f.invoice_date)                AS last_purchase_date
 FROM warehouse.fact_sales f
 JOIN warehouse.dim_customer c ON f.customer_key = c.customer_key
+WHERE c.is_internal_account = FALSE
 GROUP BY c.source_folder, c.ledger_code, c.customer_name, c.current_balance
 ORDER BY total_purchases DESC;
 
@@ -156,6 +161,7 @@ SELECT
     ROUND(SUM(f.line_amount) / NULLIF(COUNT(DISTINCT f.invoice_no), 0), 2) AS avg_order_value
 FROM warehouse.fact_sales f
 JOIN warehouse.dim_customer c ON f.customer_key = c.customer_key
+WHERE c.is_internal_account = FALSE
 GROUP BY c.source_folder, c.ledger_code, c.customer_name;
 
 
@@ -173,6 +179,8 @@ SELECT
        AND current_balance > 0
        AND is_internal_account = FALSE) AS total_receivables
 FROM warehouse.fact_sales f
+JOIN warehouse.dim_customer c ON f.customer_key = c.customer_key
+WHERE c.is_internal_account = FALSE
 GROUP BY f.source_folder;
 
 

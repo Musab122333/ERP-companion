@@ -589,6 +589,12 @@ def run_sync(mode='incremental', filter_table=None):
     log.info("=" * 62)
     if totals['errors']:
         log.warning(f"  ⚠  {totals['errors']} error(s) — review logs/ folder")
+        log.info("")
+        log.info("  Next step → Phase 3: Data Warehouse (fact/dim tables)")
+        # Exit non-zero so automated callers (e.g. a nightly scheduler
+        # batch script) can detect partial failures, not just total
+        # connection failure. A clean run with 0 table errors exits 0.
+        sys.exit(2)
     log.info("")
     log.info("  Next step → Phase 3: Data Warehouse (fact/dim tables)")
 

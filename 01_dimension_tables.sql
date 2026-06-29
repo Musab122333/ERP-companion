@@ -101,17 +101,25 @@ FROM raw.zfn2526_master
 ON CONFLICT (source_folder, ledger_code) DO NOTHING;
 
 -- ────────────────────────────────────────────────────────────
--- Flag internal control accounts (CASH/SALES/PURCHASES/STOCK)
--- These share group codes with real customers (e.g. AS1015 mixes
--- 'CASH SALE' with real parties), so we flag by ledger_code instead.
+-- Flag internal control accounts (CASH/SALES/PURCHASES/STOCK/
+-- PRODUCTION/CARRYFORWARD). These share group codes with real
+-- customers (e.g. AS1015 mixes 'CASH SALE' with real parties), so
+-- we flag by ledger_code instead of group code.
 --
--- Confirmed internal codes from your data: 26, 72, 62, CSTK, 25, C, P, S
+-- Confirmed internal codes, verified against ALL 3 folders (every
+-- occurrence of these codes maps to an internal account, never a
+-- real customer/supplier):
+--   26, 72, 62, CSTK, 25, C, P, S   (cash/sales/purchases/closing stock)
+--   01, 02, 2                       (production/carryforward/stock adj.)
+--
 -- If you spot more control accounts later (e.g. bank accounts,
--- discount accounts), add their codes to this list.
+-- discount accounts, rounding accounts), verify them the same way —
+-- check ALL folders before adding, since codes can be reused for a
+-- genuinely different real customer in a different folder.
 -- ────────────────────────────────────────────────────────────
 UPDATE warehouse.dim_customer
 SET is_internal_account = TRUE
-WHERE ledger_code IN ('26','72','62','CSTK','25','C','P','S');
+WHERE ledger_code IN ('26','72','62','CSTK','25','C','P','S','01','02','2');
 
 CREATE INDEX idx_dim_customer_code ON warehouse.dim_customer(ledger_code);
 CREATE INDEX idx_dim_customer_folder ON warehouse.dim_customer(source_folder);
